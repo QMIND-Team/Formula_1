@@ -10,12 +10,20 @@ def main():
     replayImage = cv2.imread("replay.jpg", cv2.IMREAD_GRAYSCALE)
     correct = 0
     wrong = 0
-    with open("TaggedFrames.csv") as csv_file:
+
+    with open("../../labels/Frame Tagger - US.csv") as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         headers = next(csv_reader)
-        
+
         for row in csv_reader:
-            filename = "frames/" + row[1] + ".jpg"
+            if row[2] != "TRUE" and row[2] != "FALSE":
+                print(row[3])
+                print("Ignoring {}, not T or F".format(row[1]))
+                continue
+            elif row[3] == "":
+                continue
+
+            filename = "../../frames/US Frames/" + row[1] + ".jpg"
             print(filename)
             if os.path.isfile(filename):
                 image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
