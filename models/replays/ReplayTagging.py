@@ -11,7 +11,7 @@ def main():
     correct = 0
     wrong = 0
 
-    with open("../../labels/Frame Tagger - US.csv") as csv_file:
+    with open("../../labels/Frame Tagger - Singapore.csv") as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         headers = next(csv_reader)
 
@@ -23,7 +23,7 @@ def main():
             elif row[3] == "":
                 continue
 
-            filename = "../../frames/US Frames/" + row[1] + ".jpg"
+            filename = "../../frames/Singapore Frames/" + row[1] + ".jpg"
             print(filename)
             if os.path.isfile(filename):
                 image = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
@@ -38,7 +38,7 @@ def main():
                         print("FALSE NEGATIVE: " + row[1])
                 else:
                     if row[2] == "FALSE":
-                        correct +=1
+                        correct += 1
                     else:
                         wrong += 1
                         print("FALSE POSITIVE: " + row[1])
