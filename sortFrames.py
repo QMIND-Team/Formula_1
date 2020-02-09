@@ -27,14 +27,14 @@ def main(csv_path, frame_path, new_path):
             for img_name in current_class_train:
                 src_path = os.path.join(frame_path, img_name)
                 if os.path.exists(src_path):
-                    os.rename(src_path, os.path.join(new_path, "train", c, img_name))
+                    os.rename(src_path, os.path.join(new_path, "train", c, "US-" + img_name))
             #  Test
             for img_name in current_class_test:
                 src_path = os.path.join(frame_path, img_name)
                 if os.path.exists(src_path):
-                    os.rename(src_path, os.path.join(new_path, "test", c, img_name))
+                    os.rename(src_path, os.path.join(new_path, "test", c, "US-" + img_name))
 
     csv_file.close()
 
 if __name__ == '__main__':
-    main("/Users/jd/Documents/Formula_1/labels/Frame Tagger - Singapore.csv", "/Users/jd/Documents/Formula_1/frames/Singapore Frames", "/Users/jd/Documents/Formula_1/data")
+    main("/Users/jd/Documents/Formula_1/labels/Frame Tagger - US.csv", "/Users/jd/Documents/Formula_1/frames/US Frames", "/Users/jd/Documents/Formula_1/data")

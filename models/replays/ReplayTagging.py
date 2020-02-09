@@ -8,6 +8,10 @@ def match_frame():
 
 def main():
     replayImage = cv2.imread("replay.jpg", cv2.IMREAD_GRAYSCALE)
+    actual_pos = 0
+    actual_neg = 0
+    false_pos = 0
+    false_neg = 0
     correct = 0
     wrong = 0
 
@@ -30,19 +34,19 @@ def main():
                 match = cv2.matchTemplate(image, replayImage, cv2.TM_SQDIFF)
                 min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(match)
 
-                if min_loc[0] == 99 and min_loc[1] == 55:
+                # 99+-1 and 55+-1
+                if min_loc[0] >= 98 and min_loc[0] <= 100 and min_loc[1] >= 54 and min_loc[1] <= 56 and min_val < 150000:
                     if row[2] == "TRUE":
-                        correct += 1
+                        actual_pos += 1
                     else:
-                        wrong += 1
-                        print("FALSE NEGATIVE: " + row[1])
+                        false_pos += 1
                 else:
                     if row[2] == "FALSE":
+                        actual_neg += 1
                         correct += 1
                     else:
-                        wrong += 1
-                        print("FALSE POSITIVE: " + row[1])
-        print("CORRECT: {}    WRONG: {}".format(correct, wrong))
+                        false_neg += 1
+        print("[[{}\t{}]\n [{}\t{}]]".format(actual_pos, false_pos, false_neg, actual_neg))
     csv_file.close()
 
 # def main():
