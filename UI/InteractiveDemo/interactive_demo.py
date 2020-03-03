@@ -59,13 +59,24 @@ class Form(QtWidgets.QDialog):
         file = os.path.join(os.path.dirname(__file__), "/Users/jd/Downloads/BritishGP.m4v")
         self.player.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(file)))
         self.player.setVideoOutput(self.ui.video)
-        self.player.play()
+
 
     # Key Shortcuts
         self.shortcut = QShortcut(QKeySequence("q"), self)  # Quit
         self.shortcut.activated.connect(self.handleQuit)
         self.shortcut = QShortcut(QKeySequence("f"), self)  # Fullscreen
         self.shortcut.activated.connect(self.handleFullscreen)
+
+    # Buttons
+        self.play_button.clicked.connect(self.play_button_clicked)
+        self.reset_button.clicked.connect(self.reset_button_clicked)
+
+    def play_button_clicked(self):
+        self.player.play()
+
+    def reset_button_clicked(self):
+        self.player.setPosition(0)
+        self.player.stop()
 
     def handleQuit(self):
         global capturing

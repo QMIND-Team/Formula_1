@@ -67,9 +67,9 @@
           <item>
            <layout class="QHBoxLayout" name="player_buttons">
             <item>
-             <widget class="QPushButton" name="reset_button">
+             <widget class="QPushButton" name="play_button">
               <property name="text">
-               <string>PushButton</string>
+               <string>Play</string>
               </property>
              </widget>
             </item>
@@ -96,9 +96,9 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="play_button">
+             <widget class="QPushButton" name="reset_button">
               <property name="text">
-               <string>PushButton</string>
+               <string>Reset</string>
               </property>
              </widget>
             </item>
