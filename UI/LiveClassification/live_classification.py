@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QWidget, QAction, QVBoxLayout, QHBoxLayout
 from PyQt5.QtGui import QFont, QPainter, QImage, QTextCursor
 import queue as Queue
 
+from models.replays.ReplayTagging import is_replay
 
 WINDOW_TITLE = "Live Classification"
 IMG_SIZE = 1280, 720  # 640,480 or 1280,720 or 1920,1080
@@ -127,9 +128,23 @@ class MyWindow(QMainWindow):
         if scale > 1:
             img = cv2.resize(img, disp_size,
                              interpolation=cv2.INTER_CUBIC)
+
+        # Get predictions and write on image
+        self.get_predictions(img)
+
         qimg = QImage(img.data, disp_size[0], disp_size[1],
                       disp_bpl, IMG_FORMAT)
         display.setImage(qimg)
+
+    # Gets predictions from model and writes on image
+    def get_predictions(self, img):
+        font = cv2.FONT_HERSHEY_SIMPLEX  # Make this Constant
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        if is_replay(gray_img):
+            cv2.putText(img, 'Replay',(10,500), font, 4,(255,255,255),2,cv2.LINE_AA)
+        else:
+            cv2.putText(img, 'Not Replay', (10, 500), font, 4, (255, 255, 255), 2, cv2.LINE_AA)
 
     # Custom write function to write output of print statements to textbox
     def write(self, text):
