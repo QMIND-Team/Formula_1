@@ -21,10 +21,11 @@ TEXT_FONT = QFont("Courier", 10)
 camera_num = 1  # Default camera (first in list)
 image_queue = Queue.Queue()  # Queue to hold images
 capturing = True  # Flag to indicate capturing
+VIDEO_PATH = "/Users/jd/Downloads/replay1.mp4"
 
 
 # Grab images from the camera (separate thread)
-def grab_images(cam_num, queue):
+def read_from_camera(cam_num, queue):
     cap = cv2.VideoCapture(cam_num - 1 + CAP_API)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_SIZE[0])
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_SIZE[1])
@@ -42,6 +43,24 @@ def grab_images(cam_num, queue):
                 time.sleep(DISP_MSEC / 1000.0)
         else:
             print("Error: can't grab camera image")
+            break
+    cap.release()
+
+
+def read_from_video(filename, queue):
+    cap = cv2.VideoCapture(filename)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_SIZE[0])
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_SIZE[1])
+
+    while capturing:
+        if cap.grab():
+            retval, image = cap.retrieve(0)
+            if image is not None and queue.qsize() < 2:
+                queue.put(image)
+            else:
+                time.sleep(DISP_MSEC / 1000.0)
+        else:
+            print("Error: can't grab video")
             break
     cap.release()
 
@@ -109,8 +128,8 @@ class MyWindow(QMainWindow):
         self.timer.timeout.connect(lambda:
                                    self.show_image(image_queue, self.disp, DISP_SCALE))
         self.timer.start(DISP_MSEC)
-        self.capture_thread = threading.Thread(target=grab_images,
-                                               args=(camera_num, image_queue))
+        self.capture_thread = threading.Thread(target=read_from_video,
+                                               args=(VIDEO_PATH, image_queue))
         self.capture_thread.start()  # Thread to grab images
 
     # Fetch camera image from queue, and display it
@@ -138,13 +157,21 @@ class MyWindow(QMainWindow):
 
     # Gets predictions from model and writes on image
     def get_predictions(self, img):
-        font = cv2.FONT_HERSHEY_SIMPLEX  # Make this Constant
+        font = cv2.FONT_HERSHEY_SIMPLEX  # TODO Make this Constant
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+        # Replay
         if is_replay(gray_img):
-            cv2.putText(img, 'Replay',(10,500), font, 4,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(img, 'Replay',(1100, 200), font, 1, (255,255,255), 1, cv2.LINE_AA)
         else:
-            cv2.putText(img, 'Not Replay', (10, 500), font, 4, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(img, 'Not Replay', (1100, 200), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+
+        # Camera Angle
+        cv2.putText(img, 'Track View',(1100, 300), font, 1, (255,255,255), 1, cv2.LINE_AA)
+
+        # Team on Screen
+        cv2.putText(img, 'Ferrari',(1100, 400), font, 1, (255,255,255), 1, cv2.LINE_AA)
+
 
     # Custom write function to write output of print statements to textbox
     def write(self, text):
@@ -188,4 +215,3 @@ if __name__ == '__main__':
         win.start()
         sys.exit(app.exec_())
 
-# EOF

@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import QWidget, QAction, QVBoxLayout, QHBoxLayout
 from PyQt5.QtGui import QFont, QPainter, QImage, QTextCursor
 import queue as Queue
 
-WINDOW_TITLE = "Live Classification"
+WINDOW_TITLE = "Interactive Classification"
 IMG_SIZE = 240, 120  # 640,480 or 1280,720 or 1920,1080
 IMG_FORMAT = QImage.Format_RGB888
 DISP_SCALE = 4  # Scaling factor for display image
