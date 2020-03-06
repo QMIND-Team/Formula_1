@@ -1,17 +1,14 @@
-from matplotlib import pyplot as plt
-import matplotlib.image as mpimg
 import numpy as np
 import cv2
-import glob
 import os
-
 
 # GLOBALS
 output_folder_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "team_on_screen" + os.path.sep
 annotation_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "train" + os.path.sep + "isTrackView" + os.path.sep
-train_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "train" + os.path.sep + "carDetection" + os.path.sep
-test_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "test" + os.path.sep + "isTrackView" + os.path.sep
+train_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "train" + os.path.sep
+test_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "test" + os.path.sep
 percentage_test = 20
+
 
 # generates histograms for images in ndarray form.
 # data written out to csv, 256 x 3.
@@ -26,7 +23,7 @@ def generate_histogram(imgs):
         hists = []
         chans = cv2.split(img[0])
         colors = ("b", "g", "r")
-        for(chan, color) in zip(chans, colors):
+        for (chan, color) in zip(chans, colors):
             hist = cv2.calcHist([chan], [0], None, [256], [0, 256]).flatten()
             hist = hist / chan.size
             hists.append(hist)
@@ -34,65 +31,40 @@ def generate_histogram(imgs):
         np.savetxt(output_folder_path + img[1].split(".jpg")[0] + ".csv", hist_arr, delimiter=',')
 
 
-# read .jpg files and encode as (ndarray form, file name) tuple
-def encode_images(folder):
-    images = []
-    for filename in os.listdir(folder):
-        img = mpimg.imread(os.path.join(folder, filename))
-        if img is not None:
-            images.append((img, filename))
-    return images
+'''
+frame_bound_box
+    places bounding boxes, class labels and confidences around each detected
+    f1 car in the given image.
 
-def split_dataset(img_path):
-    file_train = open(img_path + '..' + os.path.sep + 'train.txt', 'w')
-    file_test = open(img_path + '..' + os.path.sep + 'valid.txt', 'w')
-    counter = 1
-    index_test = round(100 / percentage_test)
-    for file in glob.iglob(os.path.join(img_path, '*.jpg')):
-        title, ext = os.path.splitext(os.path.basename(file))
-        if counter == index_test:
-            counter = 1
-            file_test.write(img_path + title + ".jpg" + "\n")
-        else:
-            file_train.write(img_path + title + ".jpg" + "\n")
-            counter = counter + 1
+inputs:
+    cvimg : image processed into ndarray by cv2
+    classes : list of classes model has trained on
+    net : loaded yolo model
+    out_layers : output layers of yolo model
+returns:
+    image : cvimg with bounding boxes around f1 cars superimposed 
+'''
 
-
-def implement_model(img_path, conf_path, weights_path, class_path):
-
-    image = cv2.imread(img_path)
+def frame_bound_box(cvimg, classes, net, out_layers):
+    image = cvimg
     width = image.shape[1]
     height = image.shape[0]
     scale = 0.00392
-
-    classes = None
-    with open(class_path, 'r') as f:
-        classes = [line.strip() for line in f.readlines()]
-
-
-    net = cv2.dnn.readNet(weights_path, conf_path)
-    blob = cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
-    net.setInput(blob)
-
-    def get_output_layers():
-        layer_names = net.getLayerNames()
-        output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
-        return output_layers
-
-    def draw_bounding_box(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
-        label = str(classes[class_id])
-        color = (255,255,255)
-        cv2.rectangle(img, (x,y), (x_plus_w,y_plus_h), color, 2)
-        cv2.putText(img, "%s %.2f" % (label, confidence * 100), (x-10,y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-    outs = net.forward(get_output_layers())
-
-    #init
     class_ids = []
     confidences = []
     boxes = []
     conf_thres = 0.5
     nms_thres = 0.4
+
+    def draw_bounding_box(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
+        label = str(classes[class_id])
+        color = (255, 255, 255)
+        cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
+        cv2.putText(img, "%s %.2f" % (label, confidence * 100), (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    blob = cv2.dnn.blobFromImage(image, 1/255.0, (416,416), swapRB=True, crop=False)
+    net.setInput(blob)
+    outs = net.forward(out_layers)
 
     for out in outs:
         for detection in out:
@@ -104,8 +76,8 @@ def implement_model(img_path, conf_path, weights_path, class_path):
                 centre_y = int(detection[1] * height)
                 w = int(detection[2] * width)
                 h = int(detection[3] * height)
-                x = centre_x - w/2
-                y = centre_y - h/2
+                x = centre_x - w / 2
+                y = centre_y - h / 2
                 class_ids.append(class_id)
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
@@ -122,41 +94,53 @@ def implement_model(img_path, conf_path, weights_path, class_path):
         y = box[1]
         w = box[2]
         h = box[3]
-
         draw_bounding_box(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
 
-    # display output image
-    cv2.imshow("object detection", image)
+    return image
 
-    # wait until any key is pressed
-    cv2.waitKey()
+'''
+video_bound_box 
+    displays the input video as each frame passes though the yolo network
+    placing bounding boxes around any detected f1 cars.
 
-    # save output image to disk
-    cv2.imwrite("object-detection.jpg", image)
+inputs: 
+    in_video : path to video to be processed
+    cfg : path to yolov3_obj.cfg
+    weights : path to yolov3_final.weights
+    classes : path to obj.names
+    
+returns: 
+    None
+'''
 
-    # release resources
+def video_bound_box(in_video, cfg, weights, classes):
+
+    labels = open(classes).read().strip().split("\n")
+    net = cv2.dnn.readNet(weights, cfg)
+    ln = net.getLayerNames()
+    ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+    vs = cv2.VideoCapture(in_video)
+    m = 0
+    while True:
+        (ret, frame) = vs.read()
+        if not ret:
+            break
+        m += 1
+        if m % (20) != 0:
+            continue
+
+        frame = frame_bound_box(frame, labels, net, ln)
+        cv2.imshow('frame', frame)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    vs.release()
     cv2.destroyAllWindows()
 
-def generate_bounding_boxes(img):
-    pass
-
 def main():
-
-    image = os.path.abspath(test_path + 'singapore-frame_70550.jpg')
-
-    implement_model(image, "yolov3_obj.cfg", "yolov3_final.weights", "obj.names")
-
-    #imgs = encode_images("test_imgs")
-    #generate_histogram(imgs)
+    image = os.path.abspath(train_path + 'singapore_train.mp4')
+    video_bound_box(image, "yolov3_obj.cfg", "yolov3_final.weights", "obj.names")
 
 
 if __name__ == "__main__":
     main()
-
-'''
-cv2.imshow('image',test_img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-'''
 
