@@ -1,0 +1,8 @@
+opencv-python
+pillow
+keras-preprocessing
+scikit-learn
+tensorflow
+Keras
+scipy
+tensorflow-datasets
