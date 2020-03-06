@@ -5,9 +5,12 @@ import cv2
 import glob
 import os
 
+
 # GLOBALS
 output_folder_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "team_on_screen" + os.path.sep
 annotation_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "train" + os.path.sep + "isTrackView" + os.path.sep
+train_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "train" + os.path.sep + "carDetection" + os.path.sep
+test_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "test" + os.path.sep + "isTrackView" + os.path.sep
 percentage_test = 20
 
 # generates histograms for images in ndarray form.
@@ -40,7 +43,6 @@ def encode_images(folder):
             images.append((img, filename))
     return images
 
-
 def split_dataset(img_path):
     file_train = open(img_path + '..' + os.path.sep + 'train.txt', 'w')
     file_test = open(img_path + '..' + os.path.sep + 'valid.txt', 'w')
@@ -56,12 +58,93 @@ def split_dataset(img_path):
             counter = counter + 1
 
 
+def implement_model(img_path, conf_path, weights_path, class_path):
+
+    image = cv2.imread(img_path)
+    width = image.shape[1]
+    height = image.shape[0]
+    scale = 0.00392
+
+    classes = None
+    with open(class_path, 'r') as f:
+        classes = [line.strip() for line in f.readlines()]
+
+
+    net = cv2.dnn.readNet(weights_path, conf_path)
+    blob = cv2.dnn.blobFromImage(image, scale, (416,416), (0,0,0), True, crop=False)
+    net.setInput(blob)
+
+    def get_output_layers():
+        layer_names = net.getLayerNames()
+        output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+        return output_layers
+
+    def draw_bounding_box(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
+        label = str(classes[class_id])
+        color = (255,255,255)
+        cv2.rectangle(img, (x,y), (x_plus_w,y_plus_h), color, 2)
+        cv2.putText(img, "%s %.2f" % (label, confidence * 100), (x-10,y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    outs = net.forward(get_output_layers())
+
+    #init
+    class_ids = []
+    confidences = []
+    boxes = []
+    conf_thres = 0.5
+    nms_thres = 0.4
+
+    for out in outs:
+        for detection in out:
+            scores = detection[5:]
+            class_id = np.argmax(scores)
+            confidence = scores[class_id]
+            if confidence > conf_thres:
+                centre_x = int(detection[0] * width)
+                centre_y = int(detection[1] * height)
+                w = int(detection[2] * width)
+                h = int(detection[3] * height)
+                x = centre_x - w/2
+                y = centre_y - h/2
+                class_ids.append(class_id)
+                confidences.append(float(confidence))
+                boxes.append([x, y, w, h])
+
+    # apply non-max suppression
+    indices = cv2.dnn.NMSBoxes(boxes, confidences, conf_thres, nms_thres)
+
+    # go through the detections remaining
+    # after nms and draw bounding box
+    for i in indices:
+        i = i[0]
+        box = boxes[i]
+        x = box[0]
+        y = box[1]
+        w = box[2]
+        h = box[3]
+
+        draw_bounding_box(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
+
+    # display output image
+    cv2.imshow("object detection", image)
+
+    # wait until any key is pressed
+    cv2.waitKey()
+
+    # save output image to disk
+    cv2.imwrite("object-detection.jpg", image)
+
+    # release resources
+    cv2.destroyAllWindows()
+
 def generate_bounding_boxes(img):
     pass
 
-
 def main():
-    split_dataset(annotation_path)
+
+    image = os.path.abspath(test_path + 'singapore-frame_70550.jpg')
+
+    implement_model(image, "yolov3_obj.cfg", "yolov3_final.weights", "obj.names")
 
     #imgs = encode_images("test_imgs")
     #generate_histogram(imgs)
