@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import os
+import time
 
 # GLOBALS
 output_folder_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "team_on_screen" + os.path.sep
@@ -64,8 +65,9 @@ def frame_bound_box(cvimg, classes, net, out_layers):
 
     blob = cv2.dnn.blobFromImage(image, 1/255.0, (416,416), swapRB=True, crop=False)
     net.setInput(blob)
+    start = time.time()
     outs = net.forward(out_layers)
-
+    end = time.time()
     for out in outs:
         for detection in out:
             scores = detection[5:]
@@ -95,7 +97,7 @@ def frame_bound_box(cvimg, classes, net, out_layers):
         w = box[2]
         h = box[3]
         draw_bounding_box(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
-
+    print("took %.2f seconds" % (end-start))
     return image
 
 '''
@@ -114,31 +116,37 @@ returns:
 '''
 
 def video_bound_box(in_video, cfg, weights, classes):
-
     labels = open(classes).read().strip().split("\n")
     net = cv2.dnn.readNet(weights, cfg)
     ln = net.getLayerNames()
     ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
-    vs = cv2.VideoCapture(in_video)
-    m = 0
     while True:
-        (ret, frame) = vs.read()
-        if not ret:
-            break
-        m += 1
-        if m % (20) != 0:
-            continue
+        vs = cv2.VideoCapture(in_video)
+        m = 0
+        while True:
+            (ret, frame) = vs.read()
+            if not ret:
+                break
 
-        frame = frame_bound_box(frame, labels, net, ln)
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(1) == ord('q'):
-            break
-    vs.release()
-    cv2.destroyAllWindows()
+            frame = frame_bound_box(frame, labels, net, ln)
+            frame = cv2.resize(frame, (1920, 1080))
+            cv2.imshow('frame', frame)
+            cv2.resizeWindow('frame', 1920, 1080)
+            print("frame %d " % m, end='')
+            m += 1
+            if cv2.waitKey(1) == ord('q'):
+                break
+        vs.release()
+        cv2.destroyAllWindows()
 
 def main():
-    image = os.path.abspath(train_path + 'singapore_train.mp4')
-    video_bound_box(image, "yolov3_obj.cfg", "yolov3_final.weights", "obj.names")
+
+    image = os.path.abspath(test_path + 'germany_test720.mp4')
+    # uncomment below to run 720p clip on yolov3-tiny network -> better performance
+    video_bound_box(image, "yolov3-tiny/yolov3-tiny_obj.cfg", "yolov3-tiny/yolov3-tiny_obj_8000.weights", "obj.names")
+
+    # uncomment below to run 720p clip on full yolov3 network -> more accurate boxing
+    # video_bound_box(image, "yolov3/yolov3_obj.cfg", "yolov3/yolov3_final.weights", "obj.names")
 
 
 if __name__ == "__main__":
