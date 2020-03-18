@@ -5,9 +5,6 @@ haas
 renault
 mercedes
 red_bull
-\
-merc
 ferrari
-red
 alfa_romeo
 mclaren
