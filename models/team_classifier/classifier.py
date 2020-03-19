@@ -37,9 +37,34 @@ def load_images(folder):
     return images
 
 
+def graph_histogram(filename):
+    image = cv2.imread(filename)
+    channels = cv2.split(image)
+    colors = ("b", "g", "r")
+    plt.figure()
+    plt.title("Color Histogram")
+    plt.xlabel("Bins")
+    plt.ylabel("# of Pixels")
+    features = []
+    # loop over the image channels
+    for (channel, color) in zip(channels, colors):
+        # create a histogram for the current channel and
+        # concatenate the resulting histograms for each
+        # channel
+        hist = cv2.calcHist([channel], [0], None, [256], [0, 256])
+        features.extend(hist)
+        # plot the histogram
+        plt.plot(hist, color=color)
+        plt.xlim([0, 256])
+
+    plt.show()
+
+
 def main():
     imgs = load_images("test_imgs")
     generateHistogram(imgs)
+
+    graph_histogram("/Users/jd/Documents/Formula_1/models/team_classifier/test_imgs/alfa_romeo.jpg")
 
 
 if __name__ == "__main__":

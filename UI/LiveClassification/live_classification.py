@@ -161,16 +161,16 @@ class MyWindow(QMainWindow):
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # Replay
-        if is_replay(gray_img):
+        if is_replay(gray_img, False):
             cv2.putText(img, 'Replay',(1100, 200), font, 1, (255,255,255), 1, cv2.LINE_AA)
         else:
             cv2.putText(img, 'Not Replay', (1100, 200), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
 
-        # Camera Angle
-        cv2.putText(img, 'Track View',(1100, 300), font, 1, (255,255,255), 1, cv2.LINE_AA)
-
-        # Team on Screen
-        cv2.putText(img, 'Ferrari',(1100, 400), font, 1, (255,255,255), 1, cv2.LINE_AA)
+        # # Camera Angle
+        # cv2.putText(img, 'Track View',(1100, 300), font, 1, (255,255,255), 1, cv2.LINE_AA)
+        #
+        # # Team on Screen
+        # cv2.putText(img, 'Ferrari',(1100, 400), font, 1, (255,255,255), 1, cv2.LINE_AA)
 
 
     # Custom write function to write output of print statements to textbox
@@ -200,18 +200,19 @@ class MyWindow(QMainWindow):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        try:
-            camera_num = int(sys.argv[1])
-        except:
-            camera_num = 0
-    if camera_num < 1:
-        print("Invalid camera number '%s'" % sys.argv[1])
-    else:
-        app = QApplication(sys.argv)
-        win = MyWindow()
-        win.show()
-        win.setWindowTitle(WINDOW_TITLE)
-        win.start()
-        sys.exit(app.exec_())
+    while(True):
+        if len(sys.argv) > 1:
+            try:
+                camera_num = int(sys.argv[1])
+            except:
+                camera_num = 0
+        if camera_num < 1:
+            print("Invalid camera number '%s'" % sys.argv[1])
+        else:
+            app = QApplication(sys.argv)
+            win = MyWindow()
+            win.show()
+            win.setWindowTitle(WINDOW_TITLE)
+            win.start()
+            sys.exit(app.exec_())
 
