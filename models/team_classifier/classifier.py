@@ -3,8 +3,6 @@ import cv2
 import os
 import time
 import operator
-import pprint
-from matplotlib import pyplot as plt
 
 # GLOBALS
 control_path = ".." + os.path.sep + ".." + os.path.sep + "data" + os.path.sep + "team_on_screen" + os.path.sep + 'control_hist' + os.path.sep
@@ -66,11 +64,10 @@ returns:
     image : cvimg with bounding boxes around f1 cars superimposed 
 '''
 
-def frame_bound_box(cvimg, classes, net, out_layers):
+def frame_bound_box(cvimg, classes, colors, net, out_layers):
     image = cvimg
     width = image.shape[1]
     height = image.shape[0]
-    scale = 0.00392
     class_ids = []
     confidences = []
     boxes = []
@@ -78,9 +75,8 @@ def frame_bound_box(cvimg, classes, net, out_layers):
     nms_thres = 0.4
 
     def draw_bounding_box(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
-        #label = str(classes[class_id])
-        label = class_id
-        color = (255, 255, 255)
+        label = str(classes[class_id])
+        color = colors[class_id]
         cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
         cv2.putText(img, "%s %.2f" % (label, confidence * 100), (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
@@ -93,14 +89,14 @@ def frame_bound_box(cvimg, classes, net, out_layers):
         for detection in out:
             scores = detection[5:]
             class_id = np.argmax(scores)
-            confidence = scores[0]
+            confidence = scores[class_id]
             if confidence > conf_thres:
                 centre_x = int(detection[0] * width)
                 centre_y = int(detection[1] * height)
                 w = int(detection[2] * width)
                 h = int(detection[3] * height)
-                x = int(centre_x - w / 2)
-                y = int(centre_y - h / 2)
+                x = centre_x - w / 2
+                y = centre_y - h / 2
                 class_ids.append(class_id)
                 confidences.append(float(confidence))
                 boxes.append([x, y, w, h])
@@ -117,12 +113,6 @@ def frame_bound_box(cvimg, classes, net, out_layers):
         y = box[1]
         w = box[2]
         h = box[3]
-        if (box and min(box) >= 0):
-            crop = image[y:y + h, x:x + w]
-            #cv2.imshow('crop', crop)
-            class_id = classify_team(crop)
-            class_ids[i] = class_id
-
         draw_bounding_box(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
     print("took %.2f seconds" % (end-start))
     return image
@@ -144,35 +134,36 @@ returns:
 
 def video_bound_box(in_video, cfg, weights, classes):
     labels = open(classes).read().strip().split("\n")
+    colors = np.random.uniform(0, 255, size=(len(labels), 3))
     net = cv2.dnn.readNet(weights, cfg)
     ln = net.getLayerNames()
     ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+    #while True:
+    vs = cv2.VideoCapture(in_video)
+    m = 0
     while True:
-        vs = cv2.VideoCapture(in_video)
-        m = 0
-        while True:
-            (ret, frame) = vs.read()
-            if not ret:
-                break
-            m += 1
-            # if m % 60 != 0 :
-            #     continue
-            frame = frame_bound_box(frame, labels, net, ln)
-            frame = cv2.resize(frame, (1920, 1080))
-            cv2.putText(frame, '%d' % m, (1880, 1060), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 2)
-            cv2.imshow('frame', frame)
-            cv2.resizeWindow('frame', 1920, 1080)
-            print("frame %d " % m)
-            if cv2.waitKey(1) == ord('q'):
-                break
-        vs.release()
-        cv2.destroyAllWindows()
+        (ret, frame) = vs.read()
+        if not ret:
+            break
+        m += 1
+        # if m % 60 != 0 :
+        #     continue
+        frame = frame_bound_box(frame, labels, colors, net, ln)
+        frame = cv2.resize(frame, (1920, 1080))
+        cv2.putText(frame, '%d' % m, (1880, 1060), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 2)
+        cv2.imshow('frame', frame)
+        cv2.resizeWindow('frame', 1920, 1080)
+        print("frame %d " % m)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    vs.release()
+    cv2.destroyAllWindows()
 
 def main():
-    #image = os.path.abspath(test_path + 'germany_test720.mp4')
-    image = os.path.abspath(test_path + 'singapore_test.mp4')
+    image = os.path.abspath(test_path + 'germany_test720.mp4')
+    #image = os.path.abspath(test_path + 'singapore_test.mp4')
     # uncomment below to run 720p clip on yolov3-tiny network -> better performance
-    video_bound_box(image, "yolov3-tiny/yolov3-tiny_obj.cfg", "yolov3-tiny/yolov3-tiny_obj_8000.weights", "obj.names")
+    video_bound_box(image, "yolov3-tiny/yolov3-tiny_obj.cfg", "yolov3-tiny/yolov3-tiny_obj_16000.weights", "obj.names")
     # uncomment below to run 720p clip on full yolov3 network -> more accurate boxing
     #video_bound_box(image, "yolov3/yolov3_obj.cfg", "yolov3/yolov3_final.weights", "obj.names")
 
